@@ -1,17 +1,13 @@
-using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Identity;
 
 namespace JalaliJomi.Backend.Models
 {
-    public class RegisteredUser
+    public class RegisteredUser : IdentityUser<int>
     {
-        [Key]
-        public int UserId { get; set; }
+        // Id, Email, PasswordHash, PhoneNumber già forniti da IdentityUser<int>
+
         public string FullName { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string PasswordHash { get; set; } = string.Empty;
-        public string? Phone { get; set; }
         public DateTime RegistrationDate { get; set; } = DateTime.UtcNow;
         public bool IsActive { get; set; } = true;
-
     }
- }
+}

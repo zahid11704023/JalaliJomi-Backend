@@ -1,15 +1,20 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using JalaliJomi.Backend.Models;
 
 namespace JalaliJomi.Backend.Data
 {
-    public class AppDbContext : DbContext
+    public class AppDbContext : IdentityDbContext<RegisteredUser, IdentityRole<int>, int>
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
         }
 
-        public DbSet<RegisteredUser> RegisteredUsers { get; set; }
+        // RegisteredUsers rimane per compatibilità con eventuale codice esistente
+        // che lo referenzia — IdentityDbContext espone comunque anche "Users"
+        public DbSet<RegisteredUser> RegisteredUsers => Users;
+
         public DbSet<PropertyOwner> PropertyOwners { get; set; }
         public DbSet<Listing> Listings { get; set; }
         public DbSet<Property> Properties { get; set; }
@@ -19,7 +24,7 @@ namespace JalaliJomi.Backend.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(modelBuilder);
+            base.OnModelCreating(modelBuilder); // fondamentale — crea le tabelle Identity (AspNetUsers, AspNetRoles, ecc.)
 
             // Listing -> PropertyOwner (Owner)
             modelBuilder.Entity<Listing>()
