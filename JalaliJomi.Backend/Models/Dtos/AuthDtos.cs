@@ -17,8 +17,15 @@ namespace JalaliJomi.Backend.Models.Dtos
     public class UserDto
     {
         public int Id { get; set; }
-        public string FullName { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty; // "buyer" or "owner"
+    }
+
+    public class ErrorResponseDto
+    {
+        public Dictionary<string, string[]>? Errors { get; set; }
+        public string? Error { get; set; }
     }
 }
