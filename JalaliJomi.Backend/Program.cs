@@ -1,7 +1,14 @@
+using Microsoft.EntityFrameworkCore;              // AGGIUNTO
+using JalaliJomi.Backend.Data;                     // AGGIUNTO
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// AGGIUNTO: registra il DbContext con SQLite
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
