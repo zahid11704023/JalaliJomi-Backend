@@ -4,6 +4,7 @@ using JalaliJomi.Backend.Data;
 using JalaliJomi.Backend.Models;
 using JalaliJomi.Backend.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace JalaliJomi.Backend.Controllers
 {
@@ -101,10 +102,25 @@ public async Task<IActionResult> Logout()
     return Ok(new { message = "Logged out successfully." });
 }
 
-        [HttpGet("me")]
-        public Task<IActionResult> Me()
-        {
-            throw new NotImplementedException(); // TODO next step — role computed by checking Listings table
-        }
+[Authorize]
+[HttpGet("me")]
+public async Task<IActionResult> Me()
+{
+    var user = await _userManager.GetUserAsync(User);
+    if (user == null)
+        return Unauthorized(new { error = "Not logged in." });
+
+    var isOwner = await _context.Listings.AnyAsync(l => l.PropertyOwnerId == user.Id);
+
+    var userDto = new UserDto
+    {
+        Id = user.Id,
+        FullName = user.FullName,
+        Email = user.Email!,
+        Role = isOwner ? "owner" : "buyer"
+    };
+
+    return Ok(userDto);
+}
     }
 }
