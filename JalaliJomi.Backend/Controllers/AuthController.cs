@@ -95,10 +95,11 @@ public async Task<IActionResult> Login([FromBody] LoginDto dto)
 }
 
         [HttpPost("logout")]
-        public Task<IActionResult> Logout()
-        {
-            throw new NotImplementedException(); // TODO next step
-        }
+public async Task<IActionResult> Logout()
+{
+    await _signInManager.SignOutAsync();
+    return Ok(new { message = "Logged out successfully." });
+}
 
         [HttpGet("me")]
         public Task<IActionResult> Me()
