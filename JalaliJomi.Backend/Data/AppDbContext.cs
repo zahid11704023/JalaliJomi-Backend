@@ -15,7 +15,7 @@ namespace JalaliJomi.Backend.Data
         // che lo referenzia — IdentityDbContext espone comunque anche "Users"
         public DbSet<RegisteredUser> RegisteredUsers => Users;
 
-        public DbSet<PropertyOwner> PropertyOwners { get; set; }
+       
         public DbSet<Listing> Listings { get; set; }
         public DbSet<Property> Properties { get; set; }
         public DbSet<Favourite> Favourites { get; set; }
@@ -26,10 +26,10 @@ namespace JalaliJomi.Backend.Data
         {
             base.OnModelCreating(modelBuilder); // fondamentale — crea le tabelle Identity (AspNetUsers, AspNetRoles, ecc.)
 
-            // Listing -> PropertyOwner (Owner)
+            // Listing -> RegisteredUser (Owner)
             modelBuilder.Entity<Listing>()
                 .HasOne(l => l.Owner)
-                .WithMany(po => po.Listings)
+                .WithMany()
                 .HasForeignKey(l => l.PropertyOwnerId)
                 .OnDelete(DeleteBehavior.Cascade);
 

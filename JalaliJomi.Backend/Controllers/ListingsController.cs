@@ -68,5 +68,41 @@ namespace JalaliJomi.Backend.Controllers
 
             return Ok(result);
         }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var listing = await _context.Listings
+                .Include(l => l.Property)
+                .Include(l => l.Owner)
+                .FirstOrDefaultAsync(l => l.ListingId == id && l.Status == "Active");
+
+            if (listing == null)
+                return NotFound(new { error = "Listing not found." });
+
+            var dto = new ListingDetailDto
+            {
+                ListingId = listing.ListingId,
+                Title = listing.Title,
+                Description = listing.Description,
+                Price = listing.Price,
+                Location = listing.Location,
+                Photos = string.IsNullOrWhiteSpace(listing.Photos)
+                    ? Array.Empty<string>()
+                    : listing.Photos.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                TransactionType = listing.TransactionType,
+                Status = listing.Status,
+                CreatedAt = listing.CreatedAt,
+                City = listing.Property.City,
+                PropertyType = listing.Property.PropertyType,
+                Area = listing.Property.Area,
+                Rooms = listing.Property.Rooms,
+                OwnerId = listing.Owner.Id,
+                OwnerName = listing.Owner.FullName,
+                OwnerRegistrationDate = listing.Owner.RegistrationDate
+            };
+
+            return Ok(dto);
+        }
     }
 }

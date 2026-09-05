@@ -14,7 +14,7 @@ namespace JalaliJomi.Backend.Models
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         public int PropertyOwnerId { get; set; }
-        public PropertyOwner Owner { get; set; } = null!;
+        public RegisteredUser Owner { get; set; } = null!;
 
 
         public int PropertyId { get; set; }

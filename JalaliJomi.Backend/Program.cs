@@ -63,9 +63,26 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<RegisteredUser>>();
 
     if (!context.Listings.Any())
     {
+        // Crea (o recupera) un utente finto da usare come owner dei listing seedati
+        var seedOwner = userManager.FindByEmailAsync("seedowner@test.com").GetAwaiter().GetResult();
+        if (seedOwner == null)
+        {
+            seedOwner = new RegisteredUser
+            {
+                UserName = "seedowner@test.com",
+                Email = "seedowner@test.com",
+                FullName = "Seed Owner",
+                PhoneNumber = "01700000001",
+                RegistrationDate = DateTime.UtcNow,
+                IsActive = true
+            };
+            userManager.CreateAsync(seedOwner, "SeedPass123!").GetAwaiter().GetResult();
+        }
+
         var properties = new List<Property>
         {
             new Property { Address = "House 12, Road 5, Gulshan 2", City = "Dhaka", PropertyType = "Apartment", Area = 1850, Rooms = 3 },
@@ -79,11 +96,11 @@ using (var scope = app.Services.CreateScope())
 
         var listings = new List<Listing>
         {
-            new Listing { Title = "Bright apartment in Gulshan 2", Description = "Light-filled family apartment with a quiet outlook.", Price = 8500000, Location = "Gulshan 2, Dhaka", Photos = "https://images.unsplash.com/photo-1560185127-6ed189bf02f4", TransactionType = "Sale", Status = "Active", PropertyOwnerId = 1, PropertyId = properties[0].PropertyId },
-            new Listing { Title = "Spacious penthouse in Banani", Description = "A spacious upper-floor home with private terraces.", Price = 12000000, Location = "Banani, Dhaka", Photos = "https://images.unsplash.com/photo-1649083048337-4aeb6dda80bb", TransactionType = "Sale", Status = "Active", PropertyOwnerId = 1, PropertyId = properties[1].PropertyId },
-            new Listing { Title = "Cozy apartment in Dhanmondi", Description = "Move-in ready two bedroom apartment near parks.", Price = 42000, Location = "Dhanmondi, Dhaka", Photos = "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2", TransactionType = "Rent", Status = "Active", PropertyOwnerId = 1, PropertyId = properties[2].PropertyId },
-            new Listing { Title = "Owner-listed home in Agrabad", Description = "A calm home with airy rooms near the city centre.", Price = null, Location = "Agrabad, Chittagong", Photos = "https://images.unsplash.com/photo-1613545325278-f24b0cae1224", TransactionType = "Rent", Status = "Active", PropertyOwnerId = 1, PropertyId = properties[3].PropertyId },
-            new Listing { Title = "Modern apartment in Mirpur", Description = "Thoughtfully maintained apartment in a residential community.", Price = 5500000, Location = "Mirpur, Dhaka", Photos = "https://images.unsplash.com/photo-1745794621090-d856c53b0cc2", TransactionType = "Sale", Status = "Active", PropertyOwnerId = 1, PropertyId = properties[4].PropertyId }
+            new Listing { Title = "Bright apartment in Gulshan 2", Description = "Light-filled family apartment with a quiet outlook.", Price = 8500000, Location = "Gulshan 2, Dhaka", Photos = "https://images.unsplash.com/photo-1560185127-6ed189bf02f4", TransactionType = "Sale", Status = "Active", PropertyOwnerId = seedOwner.Id, PropertyId = properties[0].PropertyId },
+            new Listing { Title = "Spacious penthouse in Banani", Description = "A spacious upper-floor home with private terraces.", Price = 12000000, Location = "Banani, Dhaka", Photos = "https://images.unsplash.com/photo-1649083048337-4aeb6dda80bb", TransactionType = "Sale", Status = "Active", PropertyOwnerId = seedOwner.Id, PropertyId = properties[1].PropertyId },
+            new Listing { Title = "Cozy apartment in Dhanmondi", Description = "Move-in ready two bedroom apartment near parks.", Price = 42000, Location = "Dhanmondi, Dhaka", Photos = "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2", TransactionType = "Rent", Status = "Active", PropertyOwnerId = seedOwner.Id, PropertyId = properties[2].PropertyId },
+            new Listing { Title = "Owner-listed home in Agrabad", Description = "A calm home with airy rooms near the city centre.", Price = null, Location = "Agrabad, Chittagong", Photos = "https://images.unsplash.com/photo-1613545325278-f24b0cae1224", TransactionType = "Rent", Status = "Active", PropertyOwnerId = seedOwner.Id, PropertyId = properties[3].PropertyId },
+            new Listing { Title = "Modern apartment in Mirpur", Description = "Thoughtfully maintained apartment in a residential community.", Price = 5500000, Location = "Mirpur, Dhaka", Photos = "https://images.unsplash.com/photo-1745794621090-d856c53b0cc2", TransactionType = "Sale", Status = "Active", PropertyOwnerId = seedOwner.Id, PropertyId = properties[4].PropertyId }
         };
         context.Listings.AddRange(listings);
         context.SaveChanges();

@@ -189,11 +189,6 @@ namespace JalaliJomi.Backend.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Discriminator")
-                        .IsRequired()
-                        .HasMaxLength(21)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("TEXT");
@@ -254,10 +249,6 @@ namespace JalaliJomi.Backend.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", (string)null);
-
-                    b.HasDiscriminator().HasValue("RegisteredUser");
-
-                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<int>", b =>
@@ -386,13 +377,6 @@ namespace JalaliJomi.Backend.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("JalaliJomi.Backend.Models.PropertyOwner", b =>
-                {
-                    b.HasBaseType("JalaliJomi.Backend.Models.RegisteredUser");
-
-                    b.HasDiscriminator().HasValue("PropertyOwner");
-                });
-
             modelBuilder.Entity("JalaliJomi.Backend.Models.ContactMessage", b =>
                 {
                     b.HasOne("JalaliJomi.Backend.Models.Listing", "Listing")
@@ -439,8 +423,8 @@ namespace JalaliJomi.Backend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("JalaliJomi.Backend.Models.PropertyOwner", "Owner")
-                        .WithMany("Listings")
+                    b.HasOne("JalaliJomi.Backend.Models.RegisteredUser", "Owner")
+                        .WithMany()
                         .HasForeignKey("PropertyOwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -512,11 +496,6 @@ namespace JalaliJomi.Backend.Migrations
                 {
                     b.Navigation("Listing")
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("JalaliJomi.Backend.Models.PropertyOwner", b =>
-                {
-                    b.Navigation("Listings");
                 });
 #pragma warning restore 612, 618
         }
