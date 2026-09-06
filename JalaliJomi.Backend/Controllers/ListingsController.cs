@@ -76,7 +76,7 @@ namespace JalaliJomi.Backend.Controllers
             return Ok(result);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
             var listing = await _context.Listings
@@ -111,6 +111,41 @@ namespace JalaliJomi.Backend.Controllers
 
             return Ok(dto);
         }
+
+        [Authorize]
+[HttpGet("mine")]
+public async Task<IActionResult> MyListings()
+{
+    var user = await _userManager.GetUserAsync(User);
+    if (user == null)
+        return Unauthorized(new ErrorResponseDto { Error = "Not logged in." });
+
+    var listings = await _context.Listings
+        .Include(l => l.Property)
+        .Where(l => l.PropertyOwnerId == user.Id)
+        .OrderByDescending(l => l.CreatedAt)
+        .ToListAsync();
+
+    var result = listings.Select(l => new ListingSummaryDto
+    {
+        ListingId = l.ListingId,
+        Title = l.Title,
+        Price = l.Price,
+        Location = l.Location,
+        Photos = string.IsNullOrWhiteSpace(l.Photos)
+            ? Array.Empty<string>()
+            : l.Photos.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+        TransactionType = l.TransactionType,
+        Status = l.Status,
+        CreatedAt = l.CreatedAt,
+        City = l.Property.City,
+        PropertyType = l.Property.PropertyType,
+        Area = l.Property.Area,
+        Rooms = l.Property.Rooms
+    });
+
+    return Ok(result);
+}
 
         [Authorize]
         [HttpPost]
