@@ -113,39 +113,39 @@ namespace JalaliJomi.Backend.Controllers
         }
 
         [Authorize]
-[HttpGet("mine")]
-public async Task<IActionResult> MyListings()
-{
-    var user = await _userManager.GetUserAsync(User);
-    if (user == null)
-        return Unauthorized(new ErrorResponseDto { Error = "Not logged in." });
+        [HttpGet("mine")]
+        public async Task<IActionResult> MyListings()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Unauthorized(new ErrorResponseDto { Error = "Not logged in." });
 
-    var listings = await _context.Listings
-        .Include(l => l.Property)
-        .Where(l => l.PropertyOwnerId == user.Id)
-        .OrderByDescending(l => l.CreatedAt)
-        .ToListAsync();
+            var listings = await _context.Listings
+                .Include(l => l.Property)
+                .Where(l => l.PropertyOwnerId == user.Id)
+                .OrderByDescending(l => l.CreatedAt)
+                .ToListAsync();
 
-    var result = listings.Select(l => new ListingSummaryDto
-    {
-        ListingId = l.ListingId,
-        Title = l.Title,
-        Price = l.Price,
-        Location = l.Location,
-        Photos = string.IsNullOrWhiteSpace(l.Photos)
-            ? Array.Empty<string>()
-            : l.Photos.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
-        TransactionType = l.TransactionType,
-        Status = l.Status,
-        CreatedAt = l.CreatedAt,
-        City = l.Property.City,
-        PropertyType = l.Property.PropertyType,
-        Area = l.Property.Area,
-        Rooms = l.Property.Rooms
-    });
+            var result = listings.Select(l => new ListingSummaryDto
+            {
+                ListingId = l.ListingId,
+                Title = l.Title,
+                Price = l.Price,
+                Location = l.Location,
+                Photos = string.IsNullOrWhiteSpace(l.Photos)
+                    ? Array.Empty<string>()
+                    : l.Photos.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                TransactionType = l.TransactionType,
+                Status = l.Status,
+                CreatedAt = l.CreatedAt,
+                City = l.Property.City,
+                PropertyType = l.Property.PropertyType,
+                Area = l.Property.Area,
+                Rooms = l.Property.Rooms
+            });
 
-    return Ok(result);
-}
+            return Ok(result);
+        }
 
         [Authorize]
         [HttpPost]
@@ -287,6 +287,50 @@ public async Task<IActionResult> MyListings()
             };
 
             return Ok(resultDto);
+        }
+
+        [Authorize]
+        [HttpPatch("{id:int}/deactivate")]
+        public async Task<IActionResult> Deactivate(int id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Unauthorized(new ErrorResponseDto { Error = "Not logged in." });
+
+            var listing = await _context.Listings.FirstOrDefaultAsync(l => l.ListingId == id);
+
+            if (listing == null || listing.PropertyOwnerId != user.Id)
+                return NotFound(new { error = "Listing not found." });
+
+            listing.Status = "Inactive";
+            listing.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { listingId = listing.ListingId, status = listing.Status });
+        }
+
+        [Authorize]
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Unauthorized(new ErrorResponseDto { Error = "Not logged in." });
+
+            var listing = await _context.Listings
+                .Include(l => l.Property)
+                .FirstOrDefaultAsync(l => l.ListingId == id);
+
+            if (listing == null || listing.PropertyOwnerId != user.Id)
+                return NotFound(new { error = "Listing not found." });
+
+            // Favourites and ContactMessages tied to this listing cascade-delete automatically (configured in AppDbContext).
+            // The linked Property does NOT auto-delete (cascade only runs the other direction), so remove it explicitly.
+            _context.Properties.Remove(listing.Property);
+            _context.Listings.Remove(listing);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
         }
 
         // --- private helper methods ---
