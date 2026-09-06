@@ -333,6 +333,47 @@ namespace JalaliJomi.Backend.Controllers
             return NoContent();
         }
 
+        [Authorize]
+        [HttpPost("{id:int}/contact")]
+        public async Task<IActionResult> ContactOwner(int id, [FromBody] ContactOwnerDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Message))
+                return BadRequest(new ErrorResponseDto
+                {
+                    Errors = new Dictionary<string, string[]>
+                    {
+                        ["message"] = new[] { "Message cannot be empty." }
+                    }
+                });
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Unauthorized(new ErrorResponseDto { Error = "Not logged in." });
+
+            var listing = await _context.Listings.FirstOrDefaultAsync(l => l.ListingId == id);
+            if (listing == null)
+                return NotFound(new { error = "Listing not found." });
+
+            var contactMessage = new ContactMessage
+            {
+                Content = dto.Message,
+                SentAt = DateTime.UtcNow,
+                Status = "Sent",
+                SenderId = user.Id,
+                ListingId = id
+            };
+            _context.ContactMessages.Add(contactMessage);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                messageId = contactMessage.MessageId,
+                listingId = contactMessage.ListingId,
+                sentAt = contactMessage.SentAt,
+                status = contactMessage.Status
+            });
+        }
+
         // --- private helper methods ---
 
         private ErrorResponseDto ModelStateToFieldErrors()

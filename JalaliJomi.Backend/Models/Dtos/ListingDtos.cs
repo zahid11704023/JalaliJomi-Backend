@@ -37,6 +37,11 @@ namespace JalaliJomi.Backend.Models.Dtos
         public int Rooms { get; set; }
     }
 
+    public class ContactOwnerDto
+    {
+        public string Message { get; set; } = string.Empty;
+    }
+
     public class ListingDetailDto
     {
        public int ListingId { get; set; }
