@@ -220,6 +220,75 @@ public async Task<IActionResult> MyListings()
             return CreatedAtAction(nameof(GetById), new { id = listing.ListingId }, resultDto);
         }
 
+        [Authorize]
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> Edit(int id, [FromBody] CreateListingDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelStateToFieldErrors());
+
+            if (!ValidTransactionTypes.Contains(dto.TransactionType, StringComparer.OrdinalIgnoreCase))
+                return BadRequest(new ErrorResponseDto
+                {
+                    Errors = new Dictionary<string, string[]>
+                    {
+                        ["transactionType"] = new[] { "Must be either 'Sale' or 'Rent'." }
+                    }
+                });
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Unauthorized(new ErrorResponseDto { Error = "Not logged in." });
+
+            var listing = await _context.Listings
+                .Include(l => l.Property)
+                .FirstOrDefaultAsync(l => l.ListingId == id);
+
+            // Not found OR belongs to someone else -> same 404, so we don't leak which listing IDs exist
+            if (listing == null || listing.PropertyOwnerId != user.Id)
+                return NotFound(new { error = "Listing not found." });
+
+            listing.Title = dto.Title;
+            listing.Description = dto.Description;
+            listing.Price = dto.Price;
+            listing.Location = dto.Location;
+            listing.Photos = dto.Photos == null || dto.Photos.Length == 0
+                ? string.Empty
+                : string.Join(",", dto.Photos);
+            listing.TransactionType = dto.TransactionType;
+            listing.UpdatedAt = DateTime.UtcNow;
+
+            listing.Property.Address = dto.Address;
+            listing.Property.City = dto.City;
+            listing.Property.PropertyType = dto.PropertyType;
+            listing.Property.Area = dto.Area;
+            listing.Property.Rooms = dto.Rooms;
+
+            await _context.SaveChangesAsync();
+
+            var resultDto = new ListingDetailDto
+            {
+                ListingId = listing.ListingId,
+                Title = listing.Title,
+                Description = listing.Description,
+                Price = listing.Price,
+                Location = listing.Location,
+                Photos = dto.Photos ?? Array.Empty<string>(),
+                TransactionType = listing.TransactionType,
+                Status = listing.Status,
+                CreatedAt = listing.CreatedAt,
+                City = listing.Property.City,
+                PropertyType = listing.Property.PropertyType,
+                Area = listing.Property.Area,
+                Rooms = listing.Property.Rooms,
+                OwnerId = user.Id,
+                OwnerName = user.FullName,
+                OwnerRegistrationDate = user.RegistrationDate
+            };
+
+            return Ok(resultDto);
+        }
+
         // --- private helper methods ---
 
         private ErrorResponseDto ModelStateToFieldErrors()
