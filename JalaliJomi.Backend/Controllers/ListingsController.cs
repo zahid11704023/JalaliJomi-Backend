@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using JalaliJomi.Backend.Data;
+using JalaliJomi.Backend.Models;
 using JalaliJomi.Backend.Models.Dtos;
 
 namespace JalaliJomi.Backend.Controllers
@@ -10,10 +13,14 @@ namespace JalaliJomi.Backend.Controllers
     public class ListingsController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly UserManager<RegisteredUser> _userManager;
 
-        public ListingsController(AppDbContext context)
+        private static readonly string[] ValidTransactionTypes = { "Sale", "Rent" };
+
+        public ListingsController(AppDbContext context, UserManager<RegisteredUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         [HttpGet]
@@ -103,6 +110,93 @@ namespace JalaliJomi.Backend.Controllers
             };
 
             return Ok(dto);
+        }
+
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> Publish([FromBody] CreateListingDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelStateToFieldErrors());
+
+            if (!ValidTransactionTypes.Contains(dto.TransactionType, StringComparer.OrdinalIgnoreCase))
+                return BadRequest(new ErrorResponseDto
+                {
+                    Errors = new Dictionary<string, string[]>
+                    {
+                        ["transactionType"] = new[] { "Must be either 'Sale' or 'Rent'." }
+                    }
+                });
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Unauthorized(new ErrorResponseDto { Error = "Not logged in." });
+
+            var property = new Property
+            {
+                Address = dto.Address,
+                City = dto.City,
+                PropertyType = dto.PropertyType,
+                Area = dto.Area,
+                Rooms = dto.Rooms
+            };
+            _context.Properties.Add(property);
+            await _context.SaveChangesAsync(); // need PropertyId before creating the Listing
+
+            var listing = new Listing
+            {
+                Title = dto.Title,
+                Description = dto.Description,
+                Price = dto.Price,
+                Location = dto.Location,
+                Photos = dto.Photos == null || dto.Photos.Length == 0
+                    ? string.Empty
+                    : string.Join(",", dto.Photos),
+                TransactionType = dto.TransactionType,
+                Status = "Active",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                PropertyOwnerId = user.Id,
+                PropertyId = property.PropertyId
+            };
+            _context.Listings.Add(listing);
+            await _context.SaveChangesAsync();
+
+            var resultDto = new ListingDetailDto
+            {
+                ListingId = listing.ListingId,
+                Title = listing.Title,
+                Description = listing.Description,
+                Price = listing.Price,
+                Location = listing.Location,
+                Photos = dto.Photos ?? Array.Empty<string>(),
+                TransactionType = listing.TransactionType,
+                Status = listing.Status,
+                CreatedAt = listing.CreatedAt,
+                City = property.City,
+                PropertyType = property.PropertyType,
+                Area = property.Area,
+                Rooms = property.Rooms,
+                OwnerId = user.Id,
+                OwnerName = user.FullName,
+                OwnerRegistrationDate = user.RegistrationDate
+            };
+
+            return CreatedAtAction(nameof(GetById), new { id = listing.ListingId }, resultDto);
+        }
+
+        // --- private helper methods ---
+
+        private ErrorResponseDto ModelStateToFieldErrors()
+        {
+            var errors = ModelState
+                .Where(kvp => kvp.Value!.Errors.Count > 0)
+                .ToDictionary(
+                    kvp => kvp.Key.ToLower(),
+                    kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
+                );
+
+            return new ErrorResponseDto { Errors = errors };
         }
     }
 }

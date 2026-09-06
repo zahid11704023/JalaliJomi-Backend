@@ -19,6 +19,24 @@ namespace JalaliJomi.Backend.Models.Dtos
         public int Rooms { get; set; }
     }
 
+    public class CreateListingDto
+    {
+        // Listing fields
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public decimal? Price { get; set; }
+        public string Location { get; set; } = string.Empty;
+        public string TransactionType { get; set; } = string.Empty; // "Sale" or "Rent"
+        public string[] Photos { get; set; } = Array.Empty<string>();
+
+        // Property fields (flattened in the request body, same pattern as the response DTOs)
+        public string Address { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string PropertyType { get; set; } = string.Empty;
+        public decimal Area { get; set; }
+        public int Rooms { get; set; }
+    }
+
     public class ListingDetailDto
     {
        public int ListingId { get; set; }
